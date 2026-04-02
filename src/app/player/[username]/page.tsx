@@ -18,7 +18,13 @@ export default async function PlayerPage({ params }: { params: Promise<{ usernam
         </div>
 
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-16 h-16 rounded-full" style={{ backgroundColor: stats.follower.avatar_color }} />
+          <div className="w-16 h-16 rounded-full overflow-hidden relative" style={{ backgroundColor: stats.follower.avatar_color }}>
+            <img
+              src={`https://unavatar.io/instagram/${stats.follower.username}`}
+              alt={stats.follower.username}
+              className="w-full h-full object-cover"
+            />
+          </div>
           <div>
             <h1 className="text-3xl font-black">{stats.follower.username}</h1>
             <p className="text-gray-400 text-sm">Joined {new Date(stats.follower.created_at).toLocaleDateString()}</p>

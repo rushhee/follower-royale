@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Application, Container, Graphics, Text, TextStyle } from "pixi.js";
+import { Application, Container, Graphics, Text, TextStyle, Assets, Sprite } from "pixi.js";
 import { SimulationEngine } from "@/lib/simulation";
 import type { Follower, KillEvent, SimulationSnapshot } from "@/types";
 import KillFeed from "./KillFeed";
@@ -92,15 +92,47 @@ export default function Arena({ participants, onBattleEnd }: ArenaProps) {
       });
       engineRef.current = engine;
 
-      const sprites = new Map<number, { container: Container; circle: Graphics; label: Text }>();
+      // Preload avatar images
+      const avatarTextures = new Map<number, any>();
+      const loadPromises = engine.characters.map(async (char) => {
+        try {
+          const url = `https://unavatar.io/instagram/${encodeURIComponent(char.username)}?fallback=false`;
+          const texture = await Assets.load({ src: url, loadParser: 'loadTextures' });
+          avatarTextures.set(char.id, texture);
+        } catch {
+          // Will fall back to colored circle
+        }
+      });
+      await Promise.allSettled(loadPromises);
+
+      const sprites = new Map<number, { container: Container; circle: Graphics | null; label: Text }>();
       for (const char of engine.characters) {
         const charContainer = new Container();
 
-        const circle = new Graphics();
-        circle.circle(0, 0, CHARACTER_RADIUS);
-        circle.fill(char.color);
-        circle.stroke({ width: 2, color: 0xffffff, alpha: 0.3 });
-        charContainer.addChild(circle);
+        const avatarTexture = avatarTextures.get(char.id);
+        let circle: Graphics | null = null;
+        if (avatarTexture) {
+          // Create circular avatar sprite
+          const avatar = new Sprite(avatarTexture);
+          avatar.width = CHARACTER_RADIUS * 2;
+          avatar.height = CHARACTER_RADIUS * 2;
+          avatar.anchor.set(0.5);
+
+          // Circle mask
+          const mask = new Graphics();
+          mask.circle(0, 0, CHARACTER_RADIUS);
+          mask.fill(0xffffff);
+          charContainer.addChild(mask);
+          avatar.mask = mask;
+          charContainer.addChild(avatar);
+        } else {
+          // Fallback: colored circle
+          circle = new Graphics();
+          circle.circle(0, 0, CHARACTER_RADIUS);
+          circle.fill(char.color);
+          circle.stroke({ width: 2, color: 0xffffff, alpha: 0.3 });
+          charContainer.addChild(circle);
+        }
 
         const label = new Text({ text: char.username, style: LABEL_STYLE });
         label.anchor.set(0.5, 0);

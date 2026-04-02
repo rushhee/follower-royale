@@ -65,7 +65,12 @@ export default function HomePage() {
                   <span className={`font-bold w-8 text-center ${i < 3 ? "text-yellow-400" : "text-gray-500"}`}>
                     {i + 1}
                   </span>
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.avatar_color }} />
+                  <img
+                    src={`https://unavatar.io/instagram/${entry.username}`}
+                    alt={entry.username}
+                    className="w-6 h-6 rounded-full object-cover"
+                    style={{ backgroundColor: entry.avatar_color }}
+                  />
                   <span className="font-mono">{entry.username}</span>
                 </div>
                 <div className="flex items-center gap-4">

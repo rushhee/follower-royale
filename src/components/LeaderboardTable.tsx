@@ -69,7 +69,17 @@ export default function LeaderboardTable({
                 <td className="px-4 py-3 text-gray-500 font-mono">{i + 1}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.avatar_color }} />
+                    <img
+                      src={`https://unavatar.io/instagram/${entry.username}`}
+                      alt={entry.username}
+                      className="w-6 h-6 rounded-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    <div className="w-6 h-6 rounded-full hidden" style={{ backgroundColor: entry.avatar_color }} />
                     {linkToProfile ? (
                       <a href={`/player/${entry.username}`} className="font-mono hover:text-blue-400 transition-colors">
                         {entry.username}
