@@ -20,6 +20,9 @@ export default function AdminPage() {
   const [maxParticipants, setMaxParticipants] = useState(50);
   const [useAll, setUseAll] = useState(true);
 
+  const [fetchingAvatars, setFetchingAvatars] = useState(false);
+  const [avatarResult, setAvatarResult] = useState<string | null>(null);
+
   const loadFollowers = useCallback(async () => {
     const params = followerSearch ? `?search=${encodeURIComponent(followerSearch)}` : "";
     const res = await fetch(`/api/followers${params}`);
@@ -78,6 +81,21 @@ export default function AdminPage() {
     loadFollowers();
   };
 
+  const fetchAvatars = async () => {
+    setFetchingAvatars(true);
+    setAvatarResult(null);
+    try {
+      const res = await fetch("/api/followers/avatars", { method: "POST" });
+      const data = await res.json();
+      setAvatarResult(data.message);
+      loadFollowers(); // Refresh the list
+    } catch {
+      setAvatarResult("Failed to fetch avatars");
+    } finally {
+      setFetchingAvatars(false);
+    }
+  };
+
   const runBattle = async () => {
     let selected: Follower[];
     if (useAll) {
@@ -127,6 +145,24 @@ export default function AdminPage() {
       <h1 className="text-3xl font-bold mb-8">Admin Panel</h1>
 
       <FollowerUpload onSync={loadFollowers} />
+
+      <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 mt-6">
+        <h2 className="text-lg font-bold mb-4">Profile Pictures</h2>
+        <p className="text-gray-400 text-sm mb-4">
+          Fetch real Instagram profile pictures for followers who don&apos;t have one yet.
+          Runs at ~2 per second to avoid rate limits.
+        </p>
+        <button
+          onClick={fetchAvatars}
+          disabled={fetchingAvatars}
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {fetchingAvatars ? "Fetching..." : "Fetch Profile Pics"}
+        </button>
+        {avatarResult && (
+          <div className="mt-3 text-sm text-green-400">{avatarResult}</div>
+        )}
+      </div>
 
       <div className="bg-gray-900 rounded-xl p-6 border border-gray-800 mt-6">
         <h2 className="text-lg font-bold mb-4">Run Battle</h2>
@@ -181,7 +217,11 @@ export default function AdminPage() {
           {followers.map((f) => (
             <div key={f.id} className="flex items-center justify-between py-2 px-3 hover:bg-gray-800 rounded">
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: f.avatar_color }} />
+                {f.avatar_url ? (
+                  <img src={f.avatar_url} alt={f.username} className="w-6 h-6 rounded-full object-cover" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: f.avatar_color }} />
+                )}
                 <span className="font-mono text-sm">{f.username}</span>
               </div>
               <button onClick={() => removeFollower(f.id)} className="text-red-400 hover:text-red-300 text-sm">

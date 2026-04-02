@@ -55,12 +55,15 @@ export default async function BattleDetailPage({ params }: { params: Promise<{ i
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <img
-                        src={`https://unavatar.io/instagram/${r.username}`}
-                        alt={r.username}
-                        className="w-5 h-5 rounded-full object-cover"
-                        style={{ backgroundColor: r.avatar_color }}
-                      />
+                      {r.avatar_url ? (
+                        <img
+                          src={r.avatar_url}
+                          alt={r.username}
+                          className="w-5 h-5 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full" style={{ backgroundColor: r.avatar_color }} />
+                      )}
                       <a href={`/player/${r.username}`} className="font-mono hover:text-blue-400">{r.username}</a>
                     </div>
                   </td>

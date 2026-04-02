@@ -7,6 +7,7 @@ function makeFollowers(count: number): Follower[] {
     id: i + 1,
     username: `user${i + 1}`,
     avatar_color: `#${((i * 37) % 256).toString(16).padStart(2, "0")}0000`,
+    avatar_url: null,
     created_at: new Date().toISOString(),
   }));
 }

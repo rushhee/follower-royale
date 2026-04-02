@@ -4,6 +4,7 @@ export interface Follower {
   id: number;
   username: string;
   avatar_color: string;
+  avatar_url: string | null;
   created_at: string;
 }
 
@@ -31,6 +32,7 @@ export interface LeaderboardEntry {
   id: number;
   username: string;
   avatar_color: string;
+  avatar_url: string | null;
   battles_played: number;
   wins: number;
   total_kills: number;
@@ -99,7 +101,7 @@ export interface BattleSavePayload {
 
 export interface BattleDetail extends Battle {
   winner_username: string | null;
-  results: (BattleResult & { username: string; avatar_color: string; killer_username: string | null })[];
+  results: (BattleResult & { username: string; avatar_color: string; avatar_url: string | null; killer_username: string | null })[];
 }
 
 export interface PlayerStats {

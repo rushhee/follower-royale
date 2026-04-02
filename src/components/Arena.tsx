@@ -96,7 +96,9 @@ export default function Arena({ participants, onBattleEnd }: ArenaProps) {
       const avatarTextures = new Map<number, any>();
       const loadPromises = engine.characters.map(async (char) => {
         try {
-          const url = `https://unavatar.io/instagram/${encodeURIComponent(char.username)}?fallback=false`;
+          const participant = participants.find(p => p.id === char.id);
+          const url = participant?.avatar_url;
+          if (!url) return; // Skip if no avatar URL stored
           const texture = await Assets.load({ src: url, loadParser: 'loadTextures' });
           avatarTextures.set(char.id, texture);
         } catch {

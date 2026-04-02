@@ -44,6 +44,12 @@ export function initializeDatabase(db: Database.Database): void {
       UNIQUE(battle_id, follower_id)
     );
   `);
+
+  try {
+    db.exec("ALTER TABLE followers ADD COLUMN avatar_url TEXT");
+  } catch {
+    // Column already exists, ignore
+  }
 }
 
 function randomColor(): string {
@@ -77,6 +83,7 @@ export function addFollower(db: Database.Database, username: string): Follower {
     id: result.lastInsertRowid as number,
     username,
     avatar_color: color,
+    avatar_url: null,
     created_at: new Date().toISOString(),
   };
 }
@@ -122,6 +129,14 @@ export function getFollowerCount(db: Database.Database): number {
 
 export function getRandomFollowers(db: Database.Database, limit: number): Follower[] {
   return db.prepare("SELECT * FROM followers ORDER BY RANDOM() LIMIT ?").all(limit) as Follower[];
+}
+
+export function updateFollowerAvatar(db: Database.Database, id: number, avatarUrl: string): void {
+  db.prepare("UPDATE followers SET avatar_url = ? WHERE id = ?").run(avatarUrl, id);
+}
+
+export function getFollowersWithoutAvatars(db: Database.Database): Follower[] {
+  return db.prepare("SELECT * FROM followers WHERE avatar_url IS NULL ORDER BY id").all() as Follower[];
 }
 
 export function saveBattleResults(
@@ -185,7 +200,7 @@ export function getBattleDetail(db: Database.Database, battleId: number): Battle
 
   const results = db
     .prepare(
-      `SELECT br.*, f.username, f.avatar_color, k.username as killer_username
+      `SELECT br.*, f.username, f.avatar_color, f.avatar_url, k.username as killer_username
        FROM battle_results br
        JOIN followers f ON f.id = br.follower_id
        LEFT JOIN followers k ON k.id = br.killed_by
@@ -201,7 +216,7 @@ export function getLeaderboard(db: Database.Database): LeaderboardEntry[] {
   return db
     .prepare(
       `SELECT
-        f.id, f.username, f.avatar_color,
+        f.id, f.username, f.avatar_color, f.avatar_url,
         COUNT(br.id) AS battles_played,
         COUNT(CASE WHEN br.placement = 1 THEN 1 END) AS wins,
         COALESCE(SUM(br.kills), 0) AS total_kills,
@@ -212,7 +227,7 @@ export function getLeaderboard(db: Database.Database): LeaderboardEntry[] {
         ) AS win_rate
       FROM followers f
       LEFT JOIN battle_results br ON br.follower_id = f.id
-      GROUP BY f.id, f.username, f.avatar_color
+      GROUP BY f.id, f.username, f.avatar_color, f.avatar_url
       HAVING battles_played > 0
       ORDER BY wins DESC, total_kills DESC`
     )
