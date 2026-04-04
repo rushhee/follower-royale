@@ -369,6 +369,7 @@ export default function Arena({ participants, onBattleEnd }: ArenaProps) {
 
         if (snap.isFinished) {
           handleBattleEnd(engine);
+          app.ticker.stop();
         }
       });
     };
