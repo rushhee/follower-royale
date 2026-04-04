@@ -1,5 +1,5 @@
-import type { CharacterState, KillEvent, BattleConfig, SimulationSnapshot } from "@/types";
-import { resolveFight, isColliding } from "./combat";
+import type { CharacterState, KillEvent, HitEvent, BattleConfig, SimulationSnapshot } from "@/types";
+import { resolveDamage, isColliding } from "./combat";
 import { computeVelocity, applyZonePush } from "./movement";
 
 const CHARACTER_RADIUS = 12;
@@ -7,6 +7,7 @@ const COLLISION_DISTANCE = CHARACTER_RADIUS * 2.5;
 const DETECTION_RADIUS = 150;
 const BASE_SPEED = 120;
 const FIGHT_COOLDOWN = 0.5;
+const ZONE_DAMAGE_PER_SECOND = 15;
 
 export class SimulationEngine {
   characters: CharacterState[];
@@ -15,6 +16,7 @@ export class SimulationEngine {
   zoneCenterY: number = 0;
   elapsed: number = 0;
   killFeed: KillEvent[] = [];
+  hitFeed: HitEvent[] = [];
   isFinished: boolean = false;
   winner: CharacterState | null = null;
 
@@ -44,6 +46,9 @@ export class SimulationEngine {
         kills: 0,
         killedBy: null,
         deathTime: null,
+        hp: 100,
+        maxHp: 100,
+        lastHitTime: null,
       };
     });
   }
@@ -74,10 +79,24 @@ export class SimulationEngine {
       char.vy = vy;
 
       const zone = applyZonePush(char.x, char.y, this.zoneRadius, this.zoneCenterX, this.zoneCenterY);
-      if (zone.kill) {
-        this.killCharacter(char, null);
-        continue;
+
+      // Zone damage: characters outside the zone lose HP over time
+      if (zone.pushX !== 0 || zone.pushY !== 0) {
+        const dx = char.x - this.zoneCenterX;
+        const dy = char.y - this.zoneCenterY;
+        const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+        const overshoot = distFromCenter - this.zoneRadius;
+        // Scale damage by how far outside the zone they are
+        const damageMultiplier = Math.min(1 + overshoot / this.zoneRadius, 3);
+        char.hp -= ZONE_DAMAGE_PER_SECOND * damageMultiplier * deltaSeconds;
+        char.lastHitTime = this.elapsed;
+
+        if (char.hp <= 0) {
+          this.killCharacter(char, null);
+          continue;
+        }
       }
+
       char.vx += zone.pushX * deltaSeconds;
       char.vy += zone.pushY * deltaSeconds;
 
@@ -94,13 +113,31 @@ export class SimulationEngine {
         if (this.fightCooldowns.has(a.id) || this.fightCooldowns.has(b.id)) continue;
 
         if (isColliding(a, b, COLLISION_DISTANCE)) {
-          const result = resolveFight(a, b);
-          const winner = a.id === result.winnerId ? a : b;
-          const loser = a.id === result.loserId ? a : b;
+          const result = resolveDamage(a, b);
+          const attacker = a.id === result.attackerId ? a : b;
+          const defender = a.id === result.defenderId ? a : b;
 
-          winner.kills++;
-          this.fightCooldowns.set(winner.id, FIGHT_COOLDOWN);
-          this.killCharacter(loser, winner);
+          defender.hp -= result.damage;
+          defender.lastHitTime = this.elapsed;
+          this.fightCooldowns.set(attacker.id, FIGHT_COOLDOWN);
+          this.fightCooldowns.set(defender.id, FIGHT_COOLDOWN * 0.5);
+
+          const killed = defender.hp <= 0;
+
+          this.hitFeed.push({
+            attackerId: attacker.id,
+            defenderId: defender.id,
+            defenderX: defender.x,
+            defenderY: defender.y,
+            damage: result.damage,
+            timestamp: this.elapsed,
+            killed,
+          });
+
+          if (killed) {
+            attacker.kills++;
+            this.killCharacter(defender, attacker);
+          }
         }
       }
     }
@@ -141,6 +178,7 @@ export class SimulationEngine {
       aliveCount: this.getAliveCount(),
       totalCount: this.characters.length,
       killFeed: this.killFeed,
+      hitFeed: this.hitFeed,
       isFinished: this.isFinished,
       winner: this.winner,
     };

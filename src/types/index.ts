@@ -55,6 +55,19 @@ export interface CharacterState {
   kills: number;
   killedBy: number | null;
   deathTime: number | null;
+  hp: number;
+  maxHp: number;
+  lastHitTime: number | null;
+}
+
+export interface HitEvent {
+  attackerId: number;
+  defenderId: number;
+  defenderX: number;
+  defenderY: number;
+  damage: number;
+  timestamp: number;
+  killed: boolean;
 }
 
 export interface KillEvent {
@@ -80,6 +93,7 @@ export interface SimulationSnapshot {
   aliveCount: number;
   totalCount: number;
   killFeed: KillEvent[];
+  hitFeed: HitEvent[];
   isFinished: boolean;
   winner: CharacterState | null;
 }

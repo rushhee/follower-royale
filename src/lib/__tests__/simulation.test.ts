@@ -27,6 +27,21 @@ describe("SimulationEngine", () => {
     expect(snap.isFinished).toBe(false);
   });
 
+  it("initializes characters with health", () => {
+    const config: BattleConfig = {
+      participants: makeFollowers(5),
+      arenaRadius: 400,
+      battleDurationTarget: 60,
+    };
+    const engine = new SimulationEngine(config);
+    const snap = engine.getSnapshot();
+    for (const char of snap.characters) {
+      expect(char.hp).toBe(100);
+      expect(char.maxHp).toBe(100);
+      expect(char.lastHitTime).toBeNull();
+    }
+  });
+
   it("spawns characters around arena edge", () => {
     const config: BattleConfig = {
       participants: makeFollowers(5),
@@ -89,5 +104,24 @@ describe("SimulationEngine", () => {
     expect(results.find((r) => r.placement === 1)).toBeDefined();
     const placements = results.map((r) => r.placement).sort((a, b) => a - b);
     expect(placements).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("populates hitFeed during simulation", () => {
+    const config: BattleConfig = {
+      participants: makeFollowers(5),
+      arenaRadius: 80,
+      battleDurationTarget: 10,
+    };
+    const engine = new SimulationEngine(config);
+    for (let i = 0; i < 10000; i++) {
+      engine.tick(1 / 60);
+      if (engine.getSnapshot().isFinished) break;
+    }
+    const snap = engine.getSnapshot();
+    expect(snap.hitFeed.length).toBeGreaterThan(0);
+    for (const hit of snap.hitFeed) {
+      expect(hit.damage).toBeGreaterThan(0);
+      expect(hit.attackerId).not.toBe(hit.defenderId);
+    }
   });
 });

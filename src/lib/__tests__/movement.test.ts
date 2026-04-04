@@ -8,6 +8,7 @@ function makeChar(overrides: Partial<CharacterState> = {}): CharacterState {
     x: 0, y: 0, vx: 0, vy: 0,
     power: 1.0, alive: true, kills: 0,
     killedBy: null, deathTime: null,
+    hp: 100, maxHp: 100, lastHitTime: null,
     ...overrides,
   };
 }

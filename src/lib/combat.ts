@@ -1,20 +1,31 @@
 import type { CharacterState } from "@/types";
 
-export interface FightResult {
-  winnerId: number;
-  loserId: number;
+export interface DamageResult {
+  attackerId: number;
+  defenderId: number;
+  damage: number;
 }
 
-export function resolveFight(a: CharacterState, b: CharacterState): FightResult {
-  const totalPower = a.power + b.power;
-  const aChance = a.power / totalPower;
-  const roll = Math.random();
+/**
+ * When two characters collide, the one with higher power attacks.
+ * Small random chance the weaker one attacks instead (30%).
+ * Damage is based on attacker's power stat.
+ */
+export function resolveDamage(a: CharacterState, b: CharacterState): DamageResult {
+  // Higher power usually attacks, but 30% chance the underdog strikes
+  const aAttacks = Math.random() < (a.power / (a.power + b.power) + 0.1);
+  const attacker = aAttacks ? a : b;
+  const defender = aAttacks ? b : a;
 
-  if (roll < aChance) {
-    return { winnerId: a.id, loserId: b.id };
-  } else {
-    return { winnerId: b.id, loserId: a.id };
-  }
+  const baseDamage = 25 + Math.random() * 15;
+  const powerBonus = attacker.power * 10;
+  const damage = Math.round(baseDamage + powerBonus);
+
+  return {
+    attackerId: attacker.id,
+    defenderId: defender.id,
+    damage,
+  };
 }
 
 export function isColliding(a: CharacterState, b: CharacterState, collisionRadius: number): boolean {
