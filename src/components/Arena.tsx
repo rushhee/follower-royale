@@ -368,8 +368,8 @@ export default function Arena({ participants, onBattleEnd }: ArenaProps) {
         setSnapshot({ ...snap });
 
         if (snap.isFinished) {
+          simulationStarted.current = false;
           handleBattleEnd(engine);
-          app.ticker.stop();
         }
       });
     };
