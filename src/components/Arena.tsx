@@ -34,7 +34,9 @@ export default function Arena({ participants, onBattleEnd }: ArenaProps) {
   const [snapshot, setSnapshot] = useState<SimulationSnapshot | null>(null);
   const [killFeed, setKillFeed] = useState<KillEvent[]>([]);
   const [showWinner, setShowWinner] = useState(false);
+  const [countdown, setCountdown] = useState<number | string | null>(null);
   const battleEndedRef = useRef(false);
+  const simulationStarted = useRef(false);
 
   const handleBattleEnd = useCallback(
     (engine: SimulationEngine) => {
@@ -149,8 +151,24 @@ export default function Arena({ participants, onBattleEnd }: ArenaProps) {
 
       let prevKillCount = 0;
 
+      // Countdown before starting
+      setCountdown(3);
+      await new Promise(r => setTimeout(r, 1000));
+      if (destroyed) return;
+      setCountdown(2);
+      await new Promise(r => setTimeout(r, 1000));
+      if (destroyed) return;
+      setCountdown(1);
+      await new Promise(r => setTimeout(r, 1000));
+      if (destroyed) return;
+      setCountdown("GO!");
+      await new Promise(r => setTimeout(r, 600));
+      if (destroyed) return;
+      setCountdown(null);
+      simulationStarted.current = true;
+
       app.ticker.add((ticker) => {
-        if (destroyed) return;
+        if (destroyed || !simulationStarted.current) return;
 
         const delta = ticker.deltaTime / 60;
         engine.tick(delta);
@@ -229,14 +247,36 @@ export default function Arena({ participants, onBattleEnd }: ArenaProps) {
   return (
     <div className="relative w-full h-full bg-[#0a0a0f]">
       <div ref={containerRef} className="w-full h-full" />
-      {snapshot && (
+
+      {/* Countdown overlay */}
+      {countdown !== null && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative text-8xl md:text-9xl font-black text-white"
+            style={{
+              textShadow: "0 0 60px rgba(255,255,255,0.5)",
+              animation: "countdown-pulse 0.8s ease-out",
+            }}
+            key={String(countdown)}
+          >
+            {countdown}
+          </div>
+        </div>
+      )}
+
+      {snapshot && !countdown && (
         <>
           <PlayerCount alive={snapshot.aliveCount} total={snapshot.totalCount} />
           <KillFeed events={killFeed} />
         </>
       )}
       {showWinner && snapshot?.winner && (
-        <WinnerScreen username={snapshot.winner.username} color={snapshot.winner.color} />
+        <WinnerScreen
+          username={snapshot.winner.username}
+          color={snapshot.winner.color}
+          onNewBattle={() => window.location.href = "/admin"}
+        />
       )}
     </div>
   );
